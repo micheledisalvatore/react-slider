@@ -334,8 +334,8 @@ class ReactSlider extends React.Component {
             upperBound: 0,
             sliderLength: 0,
             value,
+            pendingValue: value,
             zIndices,
-            tempArray: value.slice(),
         };
     }
 
@@ -348,16 +348,14 @@ class ReactSlider extends React.Component {
 
     // Keep the internal `value` consistent with an outside `value` if present.
     // This basically allows the slider to be a controlled component.
-    static getDerivedStateFromProps(props, state) {
+    static getDerivedStateFromProps(props) {
         const value = sanitizeInValue(props.value);
         if (!value.length) {
             return null;
         }
 
         return {
-            ...state,
             value: value.map(item => trimAlignValue(item, props)),
-            tempArray: value.slice(),
         };
     }
 
@@ -712,7 +710,7 @@ class ReactSlider extends React.Component {
 
         this.fireChangeEvent('onBeforeChange');
         this.hasMoved = true;
-        this.setState({ value }, () => {
+        this.setState({ value, pendingValue: value }, () => {
             callback(closestIndex);
             this.fireChangeEvent('onChange');
         });
@@ -812,7 +810,7 @@ class ReactSlider extends React.Component {
         // Normally you would use `shouldComponentUpdate`,
         // but since the slider is a low-level component,
         // the extra complexity might be worth the extra performance.
-        this.setState({ value }, this.fireChangeEvent.bind(this, 'onChange'));
+        this.setState({ value, pendingValue: value }, this.fireChangeEvent.bind(this, 'onChange'));
     }
 
     pushSucceeding(value, minDistance, index) {
@@ -881,7 +879,7 @@ class ReactSlider extends React.Component {
 
     fireChangeEvent(event) {
         if (this.props[event]) {
-            this.props[event](prepareOutValue(this.state.value));
+            this.props[event](prepareOutValue(this.state.pendingValue));
         }
     }
 
@@ -951,7 +949,7 @@ class ReactSlider extends React.Component {
     renderThumbs(offset) {
         const { length } = offset;
 
-        const styles = this.state.tempArray;
+        const styles = [];
         for (let i = 0; i < length; i += 1) {
             styles[i] = this.buildThumbStyle(offset[i], i);
         }
@@ -992,7 +990,7 @@ class ReactSlider extends React.Component {
     }
 
     render() {
-        const offset = this.state.tempArray;
+        const offset = [];
         const { value } = this.state;
         const l = value.length;
         for (let i = 0; i < l; i += 1) {
